@@ -10,18 +10,31 @@
       let linkAndroid = "https://play.google.com/store/apps/details?id=vn.novagroup.novaid"
       let linkIOS = "https://apps.apple.com/us/app/novaid/id1540530235"
 
-      let iOS = (navigator.userAgent.match(/(iPad|iPhone|iPod)/i) ? true : false);
-      if (iOS) {
+      // let iOS = (navigator.userAgent.match(/(iPad|iPhone|iPod)/i) ? true : false);
+      // if (iOS) {
+      //   window.location.href = linkIOS
+      // }
+      //
+      // let ua = navigator.userAgent.toLowerCase();
+      // let isAndroid = ua.indexOf("android") > -1; //&& ua.indexOf("mobile");
+      // if (isAndroid) {
+      //   window.location.href = linkIOS
+      // }
+      //
+      // window.location.href = linkAndroid;
+
+      var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+      if (/android/i.test(userAgent)) {
+        alert('IOS')
         window.location.href = linkIOS
       }
 
-      let ua = navigator.userAgent.toLowerCase();
-      let isAndroid = ua.indexOf("android") > -1; //&& ua.indexOf("mobile");
-      if (isAndroid) {
-        window.location.href = linkIOS
+      // iOS detection from: http://stackoverflow.com/a/9039885/177710
+      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+        alert('Android')
+        window.location.href = linkAndroid
       }
-
-      window.location.href = linkAndroid;
     </script>
 </head>
 <body>
