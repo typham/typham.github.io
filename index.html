@@ -26,14 +26,14 @@
       var userAgent = navigator.userAgent || navigator.vendor || window.opera;
 
       if (/android/i.test(userAgent)) {
-        alert('IOS')
-        window.location.href = linkIOS
+        alert('Android')
+        window.location.href = linkAndroid
       }
 
       // iOS detection from: http://stackoverflow.com/a/9039885/177710
       if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-        alert('Android')
-        window.location.href = linkAndroid
+        alert('IOS')
+        window.location.href = linkIOS
       }
     </script>
 </head>
