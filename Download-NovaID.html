@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Download NovaID</title>
+    <script type="text/javascript">
+      let linkAndroid = "https://play.google.com/store/apps/details?id=vn.novagroup.novaid"
+      let linkIOS = "https://apps.apple.com/us/app/novaid/id1540530235"
+
+      let iOS = (navigator.userAgent.match(/(iPad|iPhone|iPod)/i) ? true : false);
+      if (iOS) {
+        window.location.href = linkIOS
+      }
+
+      let ua = navigator.userAgent.toLowerCase();
+      let isAndroid = ua.indexOf("android") > -1; //&& ua.indexOf("mobile");
+      if (isAndroid) {
+        window.location.href = linkIOS
+      }
+
+      window.location.href = linkAndroid;
+    </script>
+</head>
+<body>
+
+</body>
+</html>
