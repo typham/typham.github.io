@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portfolio</title>
+  <!-- ccxt browser build -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ccxt/4.5.0/ccxt.browser.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b0f19;--card:#111729;--text:#e6edf3;--muted:#9fb3c8;--up:#12d18e;--down:#ff5d5d;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+      background:radial-gradient(1200px 800px at 10% -10%, #1a2b4a 0%, transparent 60%),
+                 radial-gradient(1200px 800px at 110% 10%, #18233b 0%, transparent 60%),
+                 var(--bg);
+      color:var(--text);
+      display:flex; flex-direction:column; align-items:center; gap:24px; padding:32px 16px;
+    }
+    h1{margin:0; font-size:56px; letter-spacing:0.6px; text-align:center}
+    .subtitle{color:var(--muted); font-size:18px; margin-top:6px; text-align:center}
+    .board{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; width:min(1200px, 100%)}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:24px; padding:22px 20px; box-shadow:0 8px 30px rgba(0,0,0,0.35);
+    }
+    .symbol{font-weight:800; font-size:28px; letter-spacing:1px}
+    .price{font-weight:900; font-size:40px; margin:10px 0 2px; line-height:1}
+    .row{display:flex; align-items:baseline; justify-content:space-between}
+    .muted{color:var(--muted); font-size:14px}
+    .change{font-size:20px; font-weight:700}
+    .change.up{color:var(--up)}
+    .change.down{color:var(--down)}
+    .footer{color:var(--muted); font-size:14px; margin-top:8px}
+    .blink{animation:blink 0.4s ease}
+    @keyframes blink{from{transform:scale(1.02)}to{transform:none}}
+    .toolbar{display:flex; gap:10px; align-items:center}
+    button{
+      background:#1f2a48; color:var(--text); border:1px solid rgba(255,255,255,.12); padding:10px 14px;
+      border-radius:12px; cursor:pointer; font-weight:700; font-size:16px
+    }
+    button:active{transform:translateY(1px)}
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button id="refreshBtn">Cập nhật ngay</button>
+    <div class="subtitle" id="status">Đang khởi tạo…</div>
+  </div>
+
+  <main class="board" id="board"></main>
+  <div class="footer" id="footer">—</div>
+
+  <script>
+    // Danh sách coin cần lấy giá
+    const SYMBOLS = [
+      'SUI/USDT', 'ARB/USDT', 'ETH/USDT', 'PEPE/USDT', 'NEAR/USDT', 'ADA/USDT', 'DOGE/USDT'
+    ];
+
+    // Tạo UI thẻ cho từng symbol
+    const board = document.getElementById('board');
+    const cards = {};
+
+    function formatNumber(x){
+      if (x === undefined || x === null || isNaN(x)) return '-';
+      // Tự động chọn số lẻ hợp lý theo giá trị
+      const abs = Math.abs(x);
+      const dp = abs >= 100 ? 2 : abs >= 1 ? 4 : 8;
+      return Number(x).toLocaleString('en-US', { maximumFractionDigits: dp, minimumFractionDigits: Math.min(2, dp) });
+    }
+
+    function makeCard(symbol){
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `
+        <div class="row">
+          <div class="symbol">${symbol.replace('/USDT','')}<span class="muted">/USDT</span></div>
+          <div class="change muted" id="chg-${symbol}">--</div>
+        </div>
+        <div class="price" id="px-${symbol}">--</div>
+        <div class="row">
+          <div class="muted">Bid: <span id="bid-${symbol}">--</span></div>
+          <div class="muted">Ask: <span id="ask-${symbol}">--</span></div>
+        </div>
+      `;
+      board.appendChild(el);
+      cards[symbol] = el;
+    }
+
+    SYMBOLS.forEach(makeCard);
+
+    // Khởi tạo ccxt cho Binance
+    const exchange = new ccxt.binance({ enableRateLimit: true, options: { adjustForTimeDifference: true }});
+
+    let lastPrices = {};
+
+    async function loadMarketsOnce(){
+      try{
+        await exchange.loadMarkets();
+      }catch(err){
+        console.error(err);
+      }
+    }
+
+    async function fetchAll(){
+      const status = document.getElementById('status');
+      status.textContent = 'Đang cập nhật…';
+      const now = new Date();
+
+      // Một số phiên bản/endpoint không hỗ trợ fetchTickers(symbols), nên lặp từng cái để chắc ăn
+      for(const symbol of SYMBOLS){
+        try{
+          const t = await exchange.fetchTicker(symbol);
+          const px = t.last ?? t.close ?? t.bid ?? t.ask;
+          const prev = lastPrices[symbol];
+          const elPx = document.getElementById(`px-${symbol}`);
+          const elBid = document.getElementById(`bid-${symbol}`);
+          const elAsk = document.getElementById(`ask-${symbol}`);
+          const elChg = document.getElementById(`chg-${symbol}`);
+
+          // Hiển thị giá
+          elPx.textContent = formatNumber(px);
+          elBid.textContent = formatNumber(t.bid);
+          elAsk.textContent = formatNumber(t.ask);
+
+          // Ước tính % thay đổi so với open (nếu có), fallback so với tick trước
+          let changePct = undefined;
+          if (typeof t.open === 'number' && t.open > 0){
+            changePct = ((px - t.open) / t.open) * 100;
+          }else if(typeof prev === 'number' && prev > 0){
+            changePct = ((px - prev) / prev) * 100;
+          }
+          if (changePct !== undefined){
+            const sign = changePct >= 0 ? '+' : '';
+            elChg.textContent = sign + changePct.toFixed(2) + '%';
+            elChg.className = 'change ' + (changePct >= 0 ? 'up' : 'down');
+          }else{
+            elChg.textContent = '--';
+            elChg.className = 'change muted';
+          }
+
+          // Hiệu ứng nhỏ khi giá thay đổi
+          if (prev !== undefined && px !== prev){
+            cards[symbol].classList.remove('blink');
+            void cards[symbol].offsetWidth; // restart animation
+            cards[symbol].classList.add('blink');
+          }
+
+          lastPrices[symbol] = px;
+        }catch(err){
+          console.error(symbol, err);
+          const elPx = document.getElementById(`px-${symbol}`);
+          const elChg = document.getElementById(`chg-${symbol}`);
+          if (elPx) elPx.textContent = 'Lỗi';
+          if (elChg) { elChg.textContent = '—'; elChg.className = 'change muted'; }
+        }
+      }
+
+      document.getElementById('footer').textContent = 'Lần cập nhật: ' + now.toLocaleString();
+      status.textContent = 'Đã cập nhật';
+    }
+
+    // Nút làm mới
+    document.getElementById('refreshBtn').addEventListener('click', fetchAll);
+
+    // Chạy
+    (async ()=>{
+      await loadMarketsOnce();
+      await fetchAll();
+      // Tự động refresh mỗi 5 giây
+      setInterval(fetchAll, 5000);
+    })();
+  </script>
+</body>
+</html>
